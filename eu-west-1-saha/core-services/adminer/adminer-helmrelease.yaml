@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: adminer
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: adminer
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  sources:
+  - repoURL: git@github.com:Alizandieh/helm-chart.git
+    targetRevision: 1.0.0
+    path: generic-chart/
+    helm:
+      releaseName: adminer
+      valuesObject:
+
+        fullnameOverride: adminer
+        image:
+          repository: adminer
+          tag: latest
+          pullPolicy: Always
+
+        service:
+          ports:
+          - port: 8080
+            targetPort: 8080
+            protocol: TCP
+            name: http
+
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          annotations:
+            cert-manager.io/issuer: "letsencrypt-cloudflare"
+            cert-manager.io/issuer-kind: "ClusterIssuer"
+            traefik.ingress.kubernetes.io/router.middlewares: traefik-oauth2proxy@kubernetescrd # <namespace>-<name>@kubernetescrd
+          hosts:
+          - host: adminer.dev.ali-zandieh.com
+            paths:
+            - /
+          tls:
+          - hosts:
+            - adminer.dev.ali-zandieh.com
+            secretName: adminer-dev-saha-tls

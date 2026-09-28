@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-runner
+  namespace: bitbucket
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-runner
+  template:
+    metadata:
+      labels:
+        app: backend-runner
+    spec:
+      nodeSelector:
+        node-group: devops_nodes
+      containers:
+        - name: runner
+          image: docker-public.packages.atlassian.com/sox/atlassian/bitbucket-pipelines-runner
+          imagePullPolicy: Always
+          env:
+            - name: ACCOUNT_UUID
+              value: "{6f615a17-c85c-4a42-85d5-30729b0d447f}"
+            - name: RUNNER_UUID
+              value: "{8e34208d-c10a-5436-a79d-e09685b8a3b6}"
+            - name: OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backend-runner-oauth-credentials
+                  key: OAUTH_CLIENT_ID
+            - name: OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-runner-oauth-credentials
+                  key: OAUTH_CLIENT_SECRET
+            - name: WORKING_DIRECTORY
+              value: "/tmp"
+            - name: RUNTIME_PREREQUISITES_ENABLED
+              value: "true"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: docker-containers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: var-run
+              mountPath: /var/run
+        - name: docker-in-docker
+          image: docker:dind
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: docker-containers
+              mountPath: /var/lib/docker/containers
+            - name: var-run
+              mountPath: /var/run
+      restartPolicy: Always
+      volumes:
+        - name: tmp
+        - name: docker-containers
+        - name: var-run

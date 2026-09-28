@@ -1,0 +1,207 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - ServerSideApply=true
+  source:
+    chart: kube-prometheus-stack
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 87.3.0
+    helm:
+      releaseName: prometheus-stack
+      valuesObject:
+
+        # No stats about etcd/scheduler/controller manager in AKS EKS.
+        defaultRules:
+          rules:
+            etcd: false
+            kubeScheduler: false
+            kubelet: false
+            kubeApiserverAvailability: false
+        kubeControllerManager:
+          enabled: false
+        kubeEtcd:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+
+        prometheusOperator:
+          kubeletEndpointsEnabled: false
+          kubeletEndpointSliceEnabled: true
+
+        prometheus:
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              cert-manager.io/issuer: "letsencrypt-cloudflare"
+              cert-manager.io/issuer-kind: "ClusterIssuer"
+              traefik.ingress.kubernetes.io/router.middlewares: traefik-oauth2proxy@kubernetescrd # <namespace>-<name>@kubernetescrd
+            hosts:
+            - prometheus.dev.ali-zandieh.com
+            paths:
+            - /
+            tls:
+            - hosts:
+              - prometheus.dev.ali-zandieh.com
+              secretName: prometheus-saha-tls
+
+          prometheusSpec:
+            retention: 60d
+            scrapeInterval: 60s
+            serviceDiscoveryRole: "EndpointSlice"
+            persistentVolumeClaimRetentionPolicy:
+              whenDeleted: Retain
+              whenScaled: Retain
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 20Gi
+
+        grafana:
+          admin:
+            existingSecret: "grafana-credentials"
+          persistence:
+            enabled: true
+            type: sts
+            storageClassName: "gp3"
+            accessModes:
+              - ReadWriteOnce
+            size: 1Gi
+            finalizers:
+              - kubernetes.io/pvc-protection
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              cert-manager.io/issuer: "letsencrypt-cloudflare"
+              cert-manager.io/issuer-kind: "ClusterIssuer"
+              traefik.ingress.kubernetes.io/router.middlewares: traefik-oauth2proxy@kubernetescrd # <namespace>-<name>@kubernetescrd
+            hosts:
+            - grafana.dev.ali-zandieh.com
+            path: /
+            tls:
+            - hosts:
+              - grafana.dev.ali-zandieh.com
+              secretName: grafana-saha-tls
+
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              url: http://loki:3100
+              isDefault: false
+            - name: CloudWatch
+              type: cloudwatch
+              jsonData:
+                authType: default
+                defaultRegion: eu-west-1
+              editable: false
+              isDefault: false
+          grafana.ini:
+            server:
+              root_url: https://grafana.dev.ali-zandieh.com
+            # Send out emails
+            smtp:
+              enabled: true
+              host: email-smtp.eu-west-1.amazonaws.com:587
+              from_address: info@ali-zandieh.com
+          smtp:
+            existingSecret: "smtp-credentials"
+            userKey: "user"
+            passwordKey: "password"
+
+        alertmanager:
+          alertmanagerSpec:
+            secrets: ["smtp-credentials"]
+          config:
+            global:
+              smtp_from: "info@ali-zandieh.com"
+              smtp_smarthost: "email-smtp.eu-west-1.amazonaws.com:587"
+              smtp_auth_username: "AKIAYJR34DGDKU2QAQ2L"
+              smtp_auth_password_file: /etc/alertmanager/secrets/smtp-credentials/password
+            inhibit_rules:
+              - source_matchers:
+                  - 'severity = critical'
+                target_matchers:
+                  - 'severity =~ warning|info'
+                equal:
+                  - 'namespace'
+                  - 'alertname'
+              - source_matchers:
+                  - 'severity = warning'
+                target_matchers:
+                  - 'severity = info'
+                equal:
+                  - 'namespace'
+                  - 'alertname'
+              - source_matchers:
+                  - 'alertname = InfoInhibitor'
+                target_matchers:
+                  - 'severity = info'
+                equal:
+                  - 'namespace'
+              - target_matchers:
+                  - 'alertname = InfoInhibitor'
+            route:
+              group_by: ['namespace']
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 12h
+              receiver: 'email-alert'
+              routes:
+                - receiver: 'null'
+                  matchers:
+                    - severity = "info"
+                - receiver: 'null'
+                  matchers:
+                    - alertname = "Watchdog"
+                - receiver: 'null'
+                  matchers:
+                    - alertname = "KubeCPUOvercommit"
+                - receiver: 'null'
+                  matchers:
+                    - alertname = "NodeSystemSaturation"
+                - receiver: 'null'
+                  matchers:
+                    - alertname = "InfoInhibitor"
+            receivers:
+              - name: 'null'
+              - name: 'email-alert'
+                email_configs:
+                  - to: 'ali.zandieh@gmail.com'
+                    headers:
+                      subject: '[DEV - {{ .Status | toUpper }}] {{ .CommonLabels.severity }}: {{ .CommonLabels.alertname }} in {{ .CommonLabels.namespace }}'
+
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              cert-manager.io/issuer: "letsencrypt-cloudflare"
+              cert-manager.io/issuer-kind: "ClusterIssuer"
+              traefik.ingress.kubernetes.io/router.middlewares: traefik-oauth2proxy@kubernetescrd # <namespace>-<name>@kubernetescrd
+            hosts:
+            - alertmanager.dev.ali-zandieh.com
+            paths:
+            - /
+            tls:
+            - hosts:
+              - alertmanager.dev.ali-zandieh.com
+              secretName: alertmanager-saha-tls

@@ -1,0 +1,22 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: saha-nodes-static
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        node-group: saha_nodes_karpenter
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: default-v2
+      requirements:
+      - key: node.kubernetes.io/instance-type
+        operator: In
+        values: ["t3a.large"]
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values: ["on-demand"]

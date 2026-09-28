@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: saha-tls
+  namespace: traefik
+spec:
+  secretName: saha-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+  - "ali-zandieh.com"
+  - "*.ali-zandieh.com"
+  - "*.dev.ali-zandieh.com"

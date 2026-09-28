@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  source:
+    chart: argocd-image-updater
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: 1.0.4
+    helm:
+      releaseName: argocd-image-updater
+      valuesObject:
+        config:
+          applicationsAPIKind: "kubernetes"
+          logLevel: "info"
+
+          registries:
+            - name: ECR-PUBLIC
+              api_url: https://public.ecr.aws
+              prefix: "public.ecr.aws"
+              ping: true
+              insecure: false
+
+            - name: ECR
+              api_url: https://570282482054.dkr.ecr.eu-west-1.amazonaws.com
+              prefix: "570282482054.dkr.ecr.eu-west-1.amazonaws.com"
+              ping: true
+              default: true
+              insecure: false
+              credentials: ext:/scripts/ecr-login.sh
+              credsexpire: 12h
+
+        authScripts:
+          enabled: true
+          scripts:
+            ecr-login.sh: |
+              #!/bin/sh
+              aws ecr --region "eu-west-1" get-authorization-token --output text --query 'authorizationData[].authorizationToken' | base64 -d
+
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-group
+                  operator: In
+                  values:
+                  - devops_nodes

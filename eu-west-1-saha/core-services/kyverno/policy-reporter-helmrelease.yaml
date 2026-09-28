@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-ui
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  source:
+    chart: policy-reporter
+    repoURL: https://kyverno.github.io/policy-reporter
+    targetRevision: 3.7.4
+    helm:
+      releaseName: kyverno-ui
+      valuesObject:
+
+        plugin:
+          kyverno:
+            enabled: true
+        ui:
+          enabled: true
+          ingress:
+            enabled: true
+            className: traefik
+            annotations:
+              cert-manager.io/issuer: "letsencrypt-cloudflare"
+              cert-manager.io/issuer-kind: "ClusterIssuer"
+              traefik.ingress.kubernetes.io/router.middlewares: traefik-oauth2proxy@kubernetescrd # <namespace>-<name>@kubernetescrd
+            hosts:
+              - host: kyverno.dev.ali-zandieh.com
+                paths:
+                  - path: /
+                    pathType: ImplementationSpecific
+            tls:
+            - hosts:
+              - kyverno.dev.ali-zandieh.com
+              secretName: kyverno-saha-tls

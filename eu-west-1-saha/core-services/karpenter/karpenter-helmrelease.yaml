@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: karpenter
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  source:
+    chart: karpenter
+    repoURL: public.ecr.aws/karpenter
+    targetRevision: 1.13.0
+    helm:
+      releaseName: karpenter
+      valuesObject:
+        replicas: 1
+        serviceAccount:
+          name: "karpenter"
+        settings:
+          clusterName: "saha-eu-west-1"
+          defaultInstanceProfile: "KarpenterNodeInstanceProfile-dev-eu-west-1"
+          featureGates:
+            staticCapacity: true

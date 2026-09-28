@@ -1,0 +1,79 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: traefik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  source:
+    chart: traefik
+    repoURL: https://traefik.github.io/charts
+    targetRevision: 39.0.2
+    helm:
+      releaseName: traefik
+      valuesObject:
+
+        deployment:
+          replicas: 2
+        ingressClass:
+          enabled: true
+          isDefaultClass: false
+          name: "traefik"
+
+        providers:
+          kubernetesIngress:
+            enabled: true
+            ingressClass: traefik
+
+        service:
+          enabled: true
+          type: LoadBalancer
+          annotations:
+            service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+            service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: 'traefik'
+                    app.kubernetes.io/instance: 'traefik-traefik'
+                topologyKey: kubernetes.io/hostname
+
+        logs:
+          general:
+            # -- Alternative logging levels are TRACE, DEBUG, INFO, WARN, ERROR, FATAL, and PANIC.
+            level: "INFO"
+
+        metrics:
+          prometheus:
+            service:
+              enabled: true
+            serviceMonitor:
+              enabled: true
+              additionalLabels:
+                release: prometheus-stack
+
+        ingressRoute:
+          dashboard:
+            enabled: true
+            annotations:
+              external-dns.alpha.kubernetes.io/target: aa3884a6ae2b44cc8956d0616e1aeafe-aa0d86db4498ec7b.elb.eu-west-1.amazonaws.com
+              kubernetes.io/ingress.class: traefik
+            matchRule: Host(`traefik.dev.ali-zandieh.com`)
+            entryPoints: ["websecure"]
+            middlewares:
+              - name: oauth2proxy
+                namespace: traefik
+            tls:
+              secretName: saha-tls

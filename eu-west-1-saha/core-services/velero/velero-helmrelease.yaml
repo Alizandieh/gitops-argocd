@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: velero
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - ServerSideApply=true
+  source:
+    chart: velero
+    repoURL: https://vmware-tanzu.github.io/helm-charts
+    targetRevision: 12.0.1
+    helm:
+      releaseName: velero
+      valuesObject:
+
+        credentials:
+          useSecret: false
+
+        serviceAccount:
+          server:
+            create: true
+            name: "velero"
+
+        initContainers:
+          - name: "velero-plugin-for-aws"
+            image: "velero/velero-plugin-for-aws:v1.13.0"
+            imagePullPolicy: "IfNotPresent"
+            volumeMounts:
+              - mountPath: "/target"
+                name: "plugins"
+
+        configuration:
+          backupStorageLocation:
+            - name: "default"
+              provider: "aws"
+              bucket: "saha-velero-backups"
+              config:
+                region: "eu-west-1"
+                kmsKeyId: "alias/aws/s3"
+
+          volumeSnapshotLocation:
+            - name: "default"
+              provider: "aws"
+              config:
+                region: "eu-west-1"
+
+        # scheduled backup every mid-night
+        schedules:
+          full-daily:
+            disabled: false
+            schedule: "5 0 * * *"
+            template:
+              ttl: "120h" # 5 days retention
+
+        resources:
+          requests:
+            cpu: 500m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi

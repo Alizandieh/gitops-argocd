@@ -1,0 +1,25 @@
+#replicaCount: 0
+image:
+  repository: 570282482054.dkr.ecr.eu-west-1.amazonaws.com/test-repo
+  tag: main-ea3e519
+  pullPolicy: Always
+containerPort: 80
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  annotations:
+    cert-manager.io/issuer: "letsencrypt-cloudflare"
+    cert-manager.io/issuer-kind: "ClusterIssuer"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-oauth2proxy@kubernetescrd # <namespace>-<name>@kubernetescrd
+  hosts:
+  - host: test-app.dev.ali-zandieh.com
+    paths:
+    - /
+  tls:
+  - hosts:
+    - test-app.dev.ali-zandieh.com
+    secretName: test-app-saha-tls
+env:
+- name: APP_NAME
+  value: "Docker Test"

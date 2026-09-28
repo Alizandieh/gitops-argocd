@@ -1,0 +1,21 @@
+# bootstrap Argo Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:Alizandieh/gitops-argocd.git
+    targetRevision: HEAD
+    path: eu-west-1-saha/bootstrap/
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

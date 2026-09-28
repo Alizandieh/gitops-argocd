@@ -1,0 +1,19 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: keda-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: test-app-generic-chart         # Deployment name
+  minReplicaCount: 4
+  maxReplicaCount: 10
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-operated.monitoring:9090
+        metricName: nginx_requests_rate
+        unsafeSsl: "true"
+        query: |
+          sum(rate(traefik_service_requests_total{exported_service=~"default-test-app-generic-chart.*"}[5m]))
+        threshold: "5"

@@ -1,0 +1,95 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - kube-system/storage-class-gp3.yaml
+  - kube-system/storage-class-gp3-delete.yaml
+  - kube-system/metrics-server-helmrelease.yaml
+  - kube-system/runtime-class.yaml
+  ############
+  - argo/secret-store.yaml
+  - argo/image-updater-external-secret.yaml
+  - argo/argocd-image-updater-helmrelease.yaml
+  - argo/smtp-external-secret.yaml
+  - argo/notification-configmap.yaml
+  - argo/dev-imageupdater.yaml
+  ############
+  - bitbucket-runner/namespace.yaml
+  - bitbucket-runner/secret-store.yaml
+  - bitbucket-runner/backend-runner-external-secret.yaml
+  - bitbucket-runner/backend-runner-deployment.yaml
+  - bitbucket-runner/dashboard-runner-external-secret.yaml
+  - bitbucket-runner/dashboard-runner-deployment.yaml
+#  - bitbucket-runner/piston-runner-external-secret.yaml
+#  - bitbucket-runner/piston-runner-deployment.yaml
+  ############
+  - external-secrets/namespace.yaml
+  - external-secrets/external-secrets-helmrelease.yaml
+  ############
+  - external-dns/namespace.yaml
+  - external-dns/secret-store.yaml
+  - external-dns/cloudflare-secret.yaml
+  - external-dns/external-dns-cloudflare-helmrelease.yaml
+  ############
+  - cert-manager/namespace.yaml
+  - cert-manager/secret-store.yaml
+  - cert-manager/cloudflare-secret.yaml
+  - cert-manager/cert-manager-helmrelease.yaml
+  - cert-manager/clusterissuer-letsencrypt-cloudflare.yaml
+  ############
+  - monitoring/namespace.yaml
+  - monitoring/prometheus-stack-helmrelease.yaml
+  - monitoring/loki-helmrelease.yaml
+  - monitoring/alloy-helmrelease.yaml
+  - monitoring/secret-store.yaml
+  - monitoring/smtp-external-secret.yaml
+  - monitoring/grafana-external-secret.yaml
+  - monitoring/grafana-dashboards/argocd-configmap.yaml
+  - monitoring/grafana-dashboards/traefik-configmap.yaml
+  - monitoring/grafana-dashboards/redis-configmap.yaml
+  ############
+  - karpenter/namespace.yaml
+  - karpenter/karpenter-helmrelease.yaml
+  - karpenter/nodeClass.yaml
+  - karpenter/piston-nodeClass.yaml
+  - karpenter/static-nodepool.yaml
+  - karpenter/dynamic-nodepool.yaml
+  - karpenter/piston-nodePool.yaml
+  ############
+  - keda/namespace.yaml
+  - keda/keda-helmrelease.yaml
+  ############
+  - oauth2-proxy/namespace.yaml
+  - oauth2-proxy/secret-store.yaml
+  - oauth2-proxy/oauth2-proxy-external-secret.yaml
+  - oauth2-proxy/oauth2-proxy-helmrelease.yaml
+  ############
+  - velero/namespace.yaml
+  - velero/velero-helmrelease.yaml
+  ############
+  - adminer/namespace.yaml
+  - adminer/adminer-helmrelease.yaml
+  ############
+  - traefik/namespace.yaml
+  - traefik/traefik-helmrelease.yaml
+  - traefik/oauth2-middleware.yaml
+  - traefik/redirect-middleware.yaml
+  - traefik/wildcard-cert-cloudflare.yaml
+  ############
+#  - istio/namespace.yaml
+#  - istio/istio-base-helmrelease.yaml
+#  - istio/istiod-helmrelease.yaml
+#  - istio/istio-cni-helmrelease.yaml
+#  - istio/istio-ztunnel-helmrelease.yaml
+#  - istio/kiali-helmrelease.yaml
+  ############
+#  - istio-ingress/namespace.yaml
+#  - istio-ingress/istio-ingress-helmrelease.yaml
+  ############
+  - kyverno/namespace.yaml
+  - kyverno/kyverno-helmrelease.yaml
+  - kyverno/policy-reporter-helmrelease.yaml
+  ############
+  - ai-mcp/namespace.yaml
+  - ai-mcp/secret-store.yaml
+  - ai-mcp/mcp-external-secret.yaml
+  - ai-mcp/grafana-mcp-helmrelease.yaml

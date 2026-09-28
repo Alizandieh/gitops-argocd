@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keda
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: keda
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - ServerSideApply=true
+  source:
+    chart: keda
+    repoURL: https://kedacore.github.io/charts
+    targetRevision: 2.19.0
+    helm:
+      releaseName: keda
+      valuesObject:
+
+        metricsServer:
+          dnsPolicy: ClusterFirstWithHostNet
+          useHostNetwork: true
+        service:
+          portHttps: 443
+          portHttpsTarget: 10231
+        prometheus:
+          metricServer:
+            port: 18080
+        webhooks:
+          port: 10230
+          useHostNetwork: true

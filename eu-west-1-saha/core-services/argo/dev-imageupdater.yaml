@@ -1,0 +1,46 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: dev-updater
+  namespace: argocd
+spec:
+  namespace: argocd
+  applicationRefs:
+    # TEST APP
+    - namePattern: "test-app"
+      commonUpdateSettings:
+        updateStrategy: "newest-build"
+        forceUpdate: true
+        allowTags: "regexp:^main-[0-9a-f]{7}$"
+      writeBackConfig:
+        method: "git:secret:argocd/argocd-image-updater-secret"
+        gitConfig:
+          repository: "https://github.com/Alizandieh/gitops-argocd.git"
+          branch: "main"
+          writeBackTarget: "helmvalues:/eu-west-1-saha/apps/test/test-app-values.yaml"
+      images:
+        - alias: "test-repo"
+          imageName: "570282482054.dkr.ecr.eu-west-1.amazonaws.com/test-repo:main-446a5e1"
+          manifestTargets:
+            helm:
+              name: "image.repository"
+              tag: "image.tag"
+    # CODE RUNNER
+    - namePattern: "piston"
+      commonUpdateSettings:
+        updateStrategy: "newest-build"
+        forceUpdate: true
+        allowTags: regexp:^DEV-main-\d{6}-[0-9a-f]{7}$
+      writeBackConfig:
+        method: "git:secret:argocd/argocd-image-updater-secret"
+        gitConfig:
+          repository: "https://github.com/Alizandieh/gitops-argocd.git"
+          branch: "main"
+          writeBackTarget: "helmvalues:/eu-west-1-saha/apps/piston/values/piston-values.yaml"
+      images:
+        - alias: "code-runner"
+          imageName: "public.ecr.aws/q0v2n7f9/code-runner:DEV-main-000016-83dee3c"
+          manifestTargets:
+            helm:
+              name: "image.repository"
+              tag: "image.tag"

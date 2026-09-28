@@ -1,0 +1,64 @@
+global:
+  affinity:
+    podAntiAffinity: soft
+    nodeAffinity:
+      type: hard
+      matchExpressions:
+          - key: node-group
+            operator: In
+            values:
+            - devops_nodes
+
+server:
+  extraArgs:
+    - --insecure
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus-stack
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/issuer: "letsencrypt-cloudflare"
+      cert-manager.io/issuer-kind: "ClusterIssuer"
+      traefik.ingress.kubernetes.io/router.middlewares: traefik-oauth2proxy@kubernetescrd
+    hostname: argocd.dev.ali-zandieh.com
+    tls: true
+
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus-stack
+
+redis:
+  enabled: true
+
+configs:
+  params:
+    server.insecure: true
+  cm:
+    url: https://argocd.dev.ali-zandieh.com
+    accounts.devs: login
+    accounts.devs.enabled: "true"
+    kustomize.buildOptions: --enable-helm
+
+  rbac:
+    policy.csv: |
+      p, devs, applications, *, */*, allow
+      p, devs, applications, delete, */*, deny
+      p, devs, applications, update, */*, deny
+      p, devs, repositories, *, *, allow
+      p, devs, logs, get, *, allow
+
+notifications:
+  enabled: true
+  cm:
+    create: false
+  secret:
+    create: false

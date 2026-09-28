@@ -1,0 +1,19 @@
+apiVersion: kyverno.io/v1
+kind: Policy
+metadata:
+  name: require-app-label
+  namespace: ali-test
+spec:
+  validationFailureAction: Enforce
+  rules:
+  - name: require-app-label
+    match:
+      resources:
+        kinds:
+        - Pod
+    validate:
+      message: "Pod must have app label"
+      pattern:
+        metadata:
+          labels:
+            app: "?*"

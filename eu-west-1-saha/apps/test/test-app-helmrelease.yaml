@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  sources:
+  - repoURL: git@github.com:Alizandieh/helm-chart.git
+    targetRevision: 1.0.2
+    path: generic-chart/
+    helm:
+      releaseName: test-app
+      valueFiles:
+      - $values/eu-west-1-saha/apps/test/test-app-values.yaml
+  - repoURL: 'git@github.com:Alizandieh/gitops-argocd.git'
+    targetRevision: main
+    ref: values

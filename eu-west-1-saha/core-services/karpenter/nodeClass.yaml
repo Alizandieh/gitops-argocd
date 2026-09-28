@@ -1,0 +1,36 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default-v2
+spec:
+  metadataOptions:
+    httpEndpoint: enabled
+    httpTokens: required
+    httpPutResponseHopLimit: 2
+  subnetSelectorTerms:
+    - id: "subnet-0cf0b6176d2340419"
+  amiFamily: AL2023
+  amiSelectorTerms:
+    - id: ami-06ecd8d70b87ba6d8
+  role: "saha_nodes-node-group-20250623123216007700000001"
+  securityGroupSelectorTerms:
+    - id: sg-0d42eb013f48247f6
+  kubelet:
+    maxPods: 100
+  tags:
+    Name: saha_nodes_karpenter
+    project: "saha"
+    region: "eu-west-1"
+    env: "dev"
+    owner: "saha"
+    user-mode: "dedicated"
+  userData: |
+    #!/bin/bash
+
+    # Get instance ID and region from instance metadata
+    TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+    INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+    REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
+
+    # Disable source/destination check for this instance (used for things like Calico CNI)
+    aws ec2 modify-instance-attribute --instance-id "$INSTANCE_ID" --no-source-dest-check --region "$REGION"

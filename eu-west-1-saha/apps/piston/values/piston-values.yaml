@@ -1,0 +1,47 @@
+fullnameOverride: piston
+image:
+  repository: public.ecr.aws/q0v2n7f9/code-runner
+  tag: DEV-main-000023-48bf912
+  pullPolicy: Always
+nodeSelector:
+  node-group: piston_nodes_karpenter
+containerPorts:
+  http: 2000
+env:
+- name: CODE_RUNNER_INPUT_MAX_SIZE
+  value: "2097152"
+- name: CODE_RUNNER_OUTPUT_MAX_SIZE
+  value: "2097152"
+- name: CODE_RUNNER_REPO_URL
+  value: "https://github.com/engineer-man/piston/releases/download/pkgs/index"
+service:
+  ports:
+  - port: 2000
+    targetPort: 2000
+    protocol: TCP
+    name: http
+ingress:
+  enabled: false
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/issuer: "letsencrypt-cloudflare"
+    cert-manager.io/issuer-kind: "ClusterIssuer"
+  hosts:
+  - host: piston.dev.ali-zandieh.com
+    paths:
+    - /
+  tls:
+  - hosts:
+    - piston.dev.ali-zandieh.com
+    secretName: piston-dev-saha-tls
+securityContext:
+  privileged: true
+  allowPrivilegeEscalation: true
+volumeMounts:
+- name: packages
+  mountPath: /code_runner/packages
+volumes:
+- name: packages
+  hostPath:
+    path: /data/code_runner/packages
+    type: DirectoryOrCreate

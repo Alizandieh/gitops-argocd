@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kiali
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  source:
+    chart: kiali-server
+    repoURL: https://kiali.org/helm-charts
+    targetRevision: 2.20.0
+    helm:
+      releaseName: kiali
+      valuesObject:
+        auth:
+          strategy: anonymous
+
+        external_services:
+          prometheus:
+            url: http://prometheus-operated.monitoring:9090
+          grafana:
+            internal_url: http://prometheus-stack-grafana.monitoring:80

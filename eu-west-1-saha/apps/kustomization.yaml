@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - test/test-app-helmrelease.yaml
+  - test/keda-test.yaml
+  - test/kyverno-test-policy.yaml
+
+############
+# PISTON
+############
+  - piston/namespace.yaml
+  - piston/piston-helmrelease.yaml
+
+

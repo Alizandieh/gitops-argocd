@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-mcp
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: ai-mcp
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  source:
+    chart: grafana-mcp
+    repoURL: https://grafana-community.github.io/helm-charts
+    targetRevision: 0.3.1
+    helm:
+      releaseName: grafana-mcp
+      valuesObject:
+
+        grafana:
+          url: "http://prometheus-stack-grafana.monitoring.svc.cluster.local:80"
+          apiKeySecret:
+            name: "mcp-credentials"
+            key: "GRAFANA_SERVICE_ACCOUNT_TOKEN"
+        extraArgs:
+          - "--transport=streamable-http"
+          - "--disable-write"
+          - "--enabled-tools=search,datasource,dashboard,prometheus,loki,alerting,cloudwatch,sift"
+
+        ingress:
+          enabled: true
+          className: "traefik"
+          annotations:
+            cert-manager.io/issuer: "letsencrypt-cloudflare"
+            cert-manager.io/issuer-kind: "ClusterIssuer"
+            external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+          hosts:
+            - host: grafana-mcp.dev.ali-zandieh.com
+              paths:
+                - path: /
+                  pathType: Prefix
+          tls:
+          - hosts:
+            - grafana-mcp.dev.ali-zandieh.com
+            secretName: grafana-mcp-saha-tls

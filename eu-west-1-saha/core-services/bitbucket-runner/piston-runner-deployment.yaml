@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: piston-runner
+  namespace: bitbucket
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: piston-runner
+  template:
+    metadata:
+      labels:
+        app: piston-runner
+    spec:
+      nodeSelector:
+        node-group: devops_nodes
+      containers:
+        - name: runner
+          image: docker-public.packages.atlassian.com/sox/atlassian/bitbucket-pipelines-runner
+          imagePullPolicy: Always
+          env:
+            - name: ACCOUNT_UUID
+              value: "{6f615a17-c85c-4a42-85d5-30729b0d447f}"
+            - name: REPOSITORY_UUID
+              value: "{98de65f2-96b8-4f78-b759-9103ce9c2614}"
+            - name: RUNNER_UUID
+              value: "{07584d9f-368d-5d46-88f8-37135c9a45b2}"
+            - name: OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: piston-runner-oauth-credentials
+                  key: OAUTH_CLIENT_ID
+            - name: OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: piston-runner-oauth-credentials
+                  key: OAUTH_CLIENT_SECRET
+            - name: WORKING_DIRECTORY
+              value: "/tmp"
+            - name: RUNTIME_PREREQUISITES_ENABLED
+              value: "true"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: docker-containers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: var-run
+              mountPath: /var/run
+        - name: docker-in-docker
+          image: docker:dind
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: docker-containers
+              mountPath: /var/lib/docker/containers
+            - name: var-run
+              mountPath: /var/run
+      restartPolicy: Always
+      volumes:
+        - name: tmp
+        - name: docker-containers
+        - name: var-run
